@@ -26,6 +26,16 @@ go.work.sum
 
 # env file
 .env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Local development data
+data/
 
 # Editor/IDE
 # .idea/
