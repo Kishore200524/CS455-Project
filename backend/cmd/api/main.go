@@ -14,6 +14,7 @@ import (
 	"github.com/Kishore200524/CS455-Project/backend/internal/auth"
 	"github.com/Kishore200524/CS455-Project/backend/internal/config"
 	"github.com/Kishore200524/CS455-Project/backend/internal/database"
+	"github.com/Kishore200524/CS455-Project/backend/internal/email"
 	"github.com/Kishore200524/CS455-Project/backend/internal/httpapi"
 )
 
@@ -41,10 +42,24 @@ func run() error {
 			log.Printf("disconnect from MongoDB: %v", err)
 		}
 	}()
+	var emailService auth.EmailService
+	switch cfg.EmailMode {
+	case "console":
+		emailService = email.Console{}
+		log.Printf("WARNING: EMAIL_MODE=console; OTPs will be printed in this terminal")
+	default:
+		emailService = email.SMTP{
+			Host:     cfg.SMTPHost,
+			Port:     cfg.SMTPPort,
+			Username: cfg.SMTPUsername,
+			Password: cfg.SMTPPassword,
+			From:     cfg.SMTPFrom,
+		}
+	}
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           httpapi.NewServer(store, auth.NewService(store)),
+		Handler:           httpapi.NewServer(store, auth.NewService(store, emailService), cfg.CookieSecure),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	serverErrors := make(chan error, 1)
