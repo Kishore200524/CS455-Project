@@ -6,27 +6,74 @@
 // (status 409) propagate so QueuePage can show
 // "This ticket has already been claimed".
 
-import type { SortOrder, TicketSummary } from "./appealsShared";
+import {
+  apiRequest,
+  isRecord,
+  type SortOrder,
+  type TicketSummary,
+} from "./appealsShared";
+
+function isTicketSummary(value: unknown): value is TicketSummary {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.referenceCode === "string" &&
+    typeof value.courseId === "string" &&
+    typeof value.year === "number" &&
+    Number.isInteger(value.year) &&
+    typeof value.professor === "string" &&
+    (value.status === "under_appeal" ||
+      value.status === "locked" ||
+      value.status === "restored" ||
+      value.status === "deleted") &&
+    (value.lockedAt === undefined || typeof value.lockedAt === "string") &&
+    typeof value.createdAt === "string"
+  );
+}
+
+function parseTicketList(result: unknown): TicketSummary[] {
+  if (
+    !isRecord(result) ||
+    !Array.isArray(result.appeals) ||
+    !result.appeals.every(isTicketSummary)
+  ) {
+    throw new Error("The server returned an unexpected response.");
+  }
+  return result.appeals;
+}
 
 // GET /api/v1/appeals?sort=asc|desc -> { appeals: TicketSummary[] }
 export async function fetchQueue(
-  _accessToken: string,
-  _sort: SortOrder,
+  accessToken: string,
+  sort: SortOrder,
 ): Promise<TicketSummary[]> {
-  throw new Error("fetchQueue is not implemented yet.");
+  const result = await apiRequest(
+    `/api/v1/appeals?sort=${encodeURIComponent(sort)}`,
+    accessToken,
+  );
+  return parseTicketList(result);
 }
 
 // POST /api/v1/appeals/{id}/claim -> TicketSummary
 export async function claimTicket(
-  _accessToken: string,
-  _ticketId: string,
+  accessToken: string,
+  ticketId: string,
 ): Promise<TicketSummary> {
-  throw new Error("claimTicket is not implemented yet.");
+  const result = await apiRequest(
+    `/api/v1/appeals/${encodeURIComponent(ticketId)}/claim`,
+    accessToken,
+    { method: "POST" },
+  );
+  if (!isTicketSummary(result)) {
+    throw new Error("The server returned an unexpected response.");
+  }
+  return result;
 }
 
 // GET /api/v1/appeals/mine -> { appeals: TicketSummary[] }
 export async function fetchMyTickets(
-  _accessToken: string,
+  accessToken: string,
 ): Promise<TicketSummary[]> {
-  throw new Error("fetchMyTickets is not implemented yet.");
+  const result = await apiRequest("/api/v1/appeals/mine", accessToken);
+  return parseTicketList(result);
 }
