@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/Kishore200524/CS455-Project/backend/internal/appeals"
+	"github.com/Kishore200524/CS455-Project/backend/internal/feedback"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -152,10 +153,10 @@ func (m *Mongo) Resolve(ctx context.Context, ticketID, moderatorID, action, comm
 		return fmt.Errorf("invalid review ID on appeal ticket: %w", err)
 	}
 	status := appeals.StatusRestored
-	reviewStatus := "published"
+	reviewStatus := feedback.StatusPublished
 	if action == appeals.ActionDelete {
 		status = appeals.StatusDeleted
-		reviewStatus = "deleted"
+		reviewStatus = feedback.StatusDeleted
 	}
 	result, err := m.appealCollection.UpdateOne(ctx, filter, bson.M{
 		"$set": bson.M{
@@ -204,6 +205,52 @@ func (m *Mongo) ReleaseExpired(ctx context.Context, now time.Time) (int64, error
 		return 0, fmt.Errorf("release expired appeal locks: %w", err)
 	}
 	return result.ModifiedCount, nil
+}
+
+func (m *Mongo) PurgeDeletedReviews(ctx context.Context, before time.Time) (int64, error) {
+	cursor, err := m.appealCollection.Find(ctx, bson.M{
+		"status":     appeals.StatusDeleted,
+		"resolvedAt": bson.M{"$lte": before},
+	}, options.Find().SetProjection(bson.M{"_id": 1, "reviewId": 1}))
+	if err != nil {
+		return 0, fmt.Errorf("find deleted appeals eligible for purge: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var tickets []struct {
+		ID       primitive.ObjectID `bson:"_id"`
+		ReviewID string             `bson:"reviewId"`
+	}
+	if err := cursor.All(ctx, &tickets); err != nil {
+		return 0, fmt.Errorf("decode deleted appeals eligible for purge: %w", err)
+	}
+	if len(tickets) == 0 {
+		return 0, nil
+	}
+
+	ticketIDs := make([]primitive.ObjectID, 0, len(tickets))
+	reviewIDs := make([]primitive.ObjectID, 0, len(tickets))
+	for _, ticket := range tickets {
+		reviewID, err := primitive.ObjectIDFromHex(ticket.ReviewID)
+		if err != nil {
+			return 0, fmt.Errorf("parse review ID for deleted appeal %s: %w", ticket.ID.Hex(), err)
+		}
+		ticketIDs = append(ticketIDs, ticket.ID)
+		reviewIDs = append(reviewIDs, reviewID)
+	}
+
+	if _, err := m.feedbackCollection.DeleteMany(ctx, bson.M{"_id": bson.M{"$in": reviewIDs}}); err != nil {
+		return 0, fmt.Errorf("permanently delete expired feedback: %w", err)
+	}
+	result, err := m.appealCollection.DeleteMany(ctx, bson.M{
+		"_id":        bson.M{"$in": ticketIDs},
+		"status":     appeals.StatusDeleted,
+		"resolvedAt": bson.M{"$lte": before},
+	})
+	if err != nil {
+		return 0, fmt.Errorf("permanently delete expired appeal tickets: %w", err)
+	}
+	return result.DeletedCount, nil
 }
 
 func activeLockFilter(id primitive.ObjectID, moderatorID string, now time.Time) bson.M {

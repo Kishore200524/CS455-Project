@@ -24,6 +24,7 @@ const (
 	StatusFlagged            = "flagged"
 	StatusRejected           = "rejected"
 	StatusPublished          = "published"
+	StatusDeleted            = "deleted"
 	StatusTriageFailed       = "triage_failed"
 	FlagReasonReview         = "Held for moderator review; AI moderation is not enabled yet"
 	StatusUnderAppeal        = "under_appeal"

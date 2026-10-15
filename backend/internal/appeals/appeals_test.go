@@ -84,3 +84,40 @@ func TestRunExpiryWorkerSweepsUntilCancelled(t *testing.T) {
 		t.Fatal("worker did not stop after cancellation")
 	}
 }
+
+type purgeCounter struct {
+	cutoffs chan time.Time
+}
+
+func (p *purgeCounter) PurgeDeletedReviews(_ context.Context, before time.Time) (int64, error) {
+	p.cutoffs <- before
+	return 0, nil
+}
+
+func TestRunDeletedReviewPurgeWorkerUsesRetentionWindow(t *testing.T) {
+	store := &purgeCounter{cutoffs: make(chan time.Time, 1)}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		RunDeletedReviewPurgeWorker(ctx, store, 5*time.Millisecond)
+		close(done)
+	}()
+
+	var cutoff time.Time
+	select {
+	case cutoff = <-store.cutoffs:
+	case <-time.After(2 * time.Second):
+		t.Fatal("purge worker did not run")
+	}
+	now := time.Now().UTC()
+	if cutoff.After(now.Add(-DeletedReviewRetention)) || cutoff.Before(now.Add(-DeletedReviewRetention-time.Second)) {
+		t.Fatalf("purge cutoff = %s, want approximately %s", cutoff, now.Add(-DeletedReviewRetention))
+	}
+
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("purge worker did not stop after cancellation")
+	}
+}

@@ -111,6 +111,7 @@ func run() error {
 	}
 
 	go appeals.RunExpiryWorker(ctx, store, appeals.DefaultSweepInterval)
+	go appeals.RunDeletedReviewPurgeWorker(ctx, store, appeals.DefaultDeletedReviewPurgeInterval)
 
 	server := &http.Server{
 		Addr: ":" + cfg.Port,

@@ -23,12 +23,12 @@ means the code should not be presented as satisfying that requirement.
 | FR-10 | Show moderators unclaimed appeal tickets oldest first. | Implemented: only appealed feedback creates a claimable ticket. |
 | FR-11 | Atomically claim a ticket so exactly one moderator owns it; concurrent losing claims receive a conflict. | Implemented with an atomic MongoDB claim update. |
 | FR-12 | Return a claimed ticket to the queue when released or unresolved after 30 minutes. | Implemented with release and expiry handling. A separate lock extension path exists and should be reconciled with the strict 30-minute requirement. |
-| FR-13 | Only the owning moderator can resolve a ticket by restoring/publishing or permanently deleting its review. | Ownership checks and restore/delete state transitions are implemented. Delete is currently a soft delete (`status=deleted`); it does not erase the feedback document or ticket copy, and the two record updates are not transactional. |
+| FR-13 | Only the owning moderator can resolve a ticket by restoring/publishing or permanently deleting its review. | Ownership checks and restore/delete state transitions are implemented. A deleted review and its appeal ticket remain available by reference for 72 hours so the student can check the resolution comment; a periodic worker then permanently removes both records. The two record updates are not transactional. |
 
 The review lifecycle is `Submitted → Published / Flagged → Under Appeal →
-Locked → Restored / Deleted`, with a released or expired lock returning to
-`Under Appeal`. Preserve these states and ownership constraints in the
-implementation.
+Locked → Restored / Deleted → Purged after 72 hours`, with a released or
+expired lock returning to `Under Appeal`. Preserve these states and ownership
+constraints in the implementation.
 
 The proposal's boundary cases are important tests:
 

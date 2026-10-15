@@ -29,8 +29,11 @@ and put it in its own PR.
 
 ```text
 under_appeal --claim--> locked --restore--> restored (review published)
-     ^                    |   \--delete---> deleted  (review removed, comment stored)
+  ^                    |   \--delete---> deleted (hidden; student can check outcome)
      +---- release, or 30 minutes without resolving ----+
+                      |
+                 after 72 hours v
+                     purged
 ```
 
 Rules every query must follow:
@@ -70,10 +73,13 @@ Older reviews without these fields continue to display them as "Not provided".
 | `appealComment` | string | the student's explanation |
 | `createdAt` | date | queue ordering |
 | `lockedBy`, `lockedAt` | string, date | set while `locked`, removed on release |
-| `resolutionComment`, `resolvedAt` | string, date | set on resolve; the student-status feature reads the comment |
+| `resolutionComment`, `resolvedAt` | string, date | set on resolve; the student can read the comment for 72 hours after delete |
 
 On resolve, Person B also updates the review in `feedback`: `restore` sets its
-`status` to `published`, `delete` sets it to `deleted`.
+`status` to `published`, `delete` sets it to `deleted`. Deleted reviews are
+excluded from public exploration immediately. The review and its appeal ticket,
+including the moderator comment, are permanently removed after 72 hours by the
+API's periodic purge worker.
 
 ## Endpoints
 

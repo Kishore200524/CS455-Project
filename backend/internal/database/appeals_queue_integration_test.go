@@ -422,3 +422,62 @@ func TestStudentAppealCreatesModeratorQueueTicket(t *testing.T) {
 		t.Fatalf("resolved review status = %q, appeal status = %q; want published/restored", resolved.Status, resolved.AppealStatus)
 	}
 }
+
+func TestDeletedAppealIsRetainedThenPurged(t *testing.T) {
+	store, ctx := queueIntegrationMongo(t)
+	input := feedback.CreateInput{
+		CourseID: "CS455", CourseTitle: "Software Engineering", Professor: "Prof. Rao", Year: 2026,
+		Category: "teaching", Rating: 4, Content: "A review to verify deletion retention.",
+	}
+	review, err := store.Create(ctx, input)
+	if err != nil {
+		t.Fatalf("create feedback: %v", err)
+	}
+	if err := store.UpdateStatus(ctx, review.ID, feedback.StatusFlagged, "other: requires review"); err != nil {
+		t.Fatalf("flag feedback: %v", err)
+	}
+	if _, err := store.CreateAppeal(ctx, review.ReferenceCode, "Please reconsider this review."); err != nil {
+		t.Fatalf("create appeal: %v", err)
+	}
+	queued, err := store.ListUnclaimed(ctx, appeals.SortOldestFirst)
+	if err != nil || len(queued) != 1 {
+		t.Fatalf("list appeal queue = (%+v, %v), want one ticket", queued, err)
+	}
+	const moderatorID = "retention-test-moderator"
+	claimed, err := store.Claim(ctx, queued[0].ID, moderatorID)
+	if err != nil {
+		t.Fatalf("claim appeal: %v", err)
+	}
+	if err := store.Resolve(ctx, claimed.ID, moderatorID, appeals.ActionDelete, "Removed for violating guidelines."); err != nil {
+		t.Fatalf("delete appealed review: %v", err)
+	}
+
+	var ticket struct {
+		ID                primitive.ObjectID `bson:"_id"`
+		ResolvedAt        time.Time          `bson:"resolvedAt"`
+		ResolutionComment string             `bson:"resolutionComment"`
+	}
+	if err := store.appealCollection.FindOne(ctx, bson.M{"referenceCode": review.ReferenceCode}).Decode(&ticket); err != nil {
+		t.Fatalf("read deleted appeal ticket: %v", err)
+	}
+	status, err := store.FindByReference(ctx, review.ReferenceCode)
+	if err != nil {
+		t.Fatalf("student status during retention: %v", err)
+	}
+	if status.Status != feedback.StatusDeleted || status.AppealResolutionComment != ticket.ResolutionComment {
+		t.Fatalf("retained status = (%q, %q), want deleted with resolution comment", status.Status, status.AppealResolutionComment)
+	}
+
+	if count, err := store.PurgeDeletedReviews(ctx, ticket.ResolvedAt.Add(-time.Nanosecond)); err != nil || count != 0 {
+		t.Fatalf("purge before retention expires = (%d, %v), want (0, nil)", count, err)
+	}
+	if count, err := store.PurgeDeletedReviews(ctx, ticket.ResolvedAt.Add(time.Nanosecond)); err != nil || count != 1 {
+		t.Fatalf("purge after retention expires = (%d, %v), want (1, nil)", count, err)
+	}
+	if _, err := store.FindByReference(ctx, review.ReferenceCode); !errors.Is(err, feedback.ErrReviewNotFound) {
+		t.Fatalf("student status after purge error = %v, want review not found", err)
+	}
+	if count, err := store.appealCollection.CountDocuments(ctx, bson.M{"_id": ticket.ID}); err != nil || count != 0 {
+		t.Fatalf("appeal ticket count after purge = (%d, %v), want (0, nil)", count, err)
+	}
+}
