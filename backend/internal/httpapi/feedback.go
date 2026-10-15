@@ -140,6 +140,10 @@ func feedbackErrorMessage(err error) string {
 		return feedback.ErrInvalidCourseID.Error()
 	case errors.Is(err, feedback.ErrInvalidCourseTitle):
 		return feedback.ErrInvalidCourseTitle.Error()
+	case errors.Is(err, feedback.ErrInvalidProfessor):
+		return feedback.ErrInvalidProfessor.Error()
+	case errors.Is(err, feedback.ErrInvalidYear):
+		return feedback.ErrInvalidYear.Error()
 	case errors.Is(err, feedback.ErrInvalidCategory):
 		return feedback.ErrInvalidCategory.Error()
 	case errors.Is(err, feedback.ErrInvalidRating):

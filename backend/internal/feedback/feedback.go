@@ -14,6 +14,9 @@ import (
 const (
 	MaxContentLength         = 5000
 	MaxCourseTitle           = 160
+	MaxProfessorLength       = 120
+	MinAcademicYear          = 1900
+	MaxAcademicYear          = 2100
 	MaxCategory              = 60
 	MinRating                = 1
 	MaxRating                = 5
@@ -30,6 +33,8 @@ const (
 var (
 	ErrInvalidCourseID     = errors.New("courseId must not be empty and must be at most 120 characters")
 	ErrInvalidCourseTitle  = errors.New("courseTitle must not be empty and must be at most 160 characters")
+	ErrInvalidProfessor    = errors.New("professor must not be empty and must be at most 120 characters")
+	ErrInvalidYear         = errors.New("year must be between 1900 and 2100")
 	ErrInvalidCategory     = errors.New("category must be one of teaching, content, assessment, workload, resources, or other")
 	ErrInvalidRating       = errors.New("rating must be between 1 and 5")
 	ErrInvalidContent      = errors.New("content must not be empty and must be at most 5000 characters")
@@ -42,6 +47,8 @@ var (
 type CreateInput struct {
 	CourseID    string `json:"courseId"`
 	CourseTitle string `json:"courseTitle"`
+	Professor   string `json:"professor"`
+	Year        int    `json:"year"`
 	Category    string `json:"category"`
 	Rating      int    `json:"rating"`
 	Content     string `json:"content"`
@@ -52,6 +59,8 @@ type Feedback struct {
 	ReferenceCode           string     `json:"referenceCode" bson:"referenceCode"`
 	CourseID                string     `json:"courseId" bson:"courseId"`
 	CourseTitle             string     `json:"courseTitle" bson:"courseTitle"`
+	Professor               string     `json:"professor" bson:"professor"`
+	Year                    int        `json:"year" bson:"year"`
 	Category                string     `json:"category" bson:"category"`
 	Rating                  int        `json:"rating" bson:"rating"`
 	Content                 string     `json:"content" bson:"content"`
@@ -110,6 +119,12 @@ func Validate(input CreateInput) error {
 	if title := strings.TrimSpace(input.CourseTitle); title == "" || utf8.RuneCountInString(title) > MaxCourseTitle {
 		return ErrInvalidCourseTitle
 	}
+	if professor := strings.TrimSpace(input.Professor); professor == "" || utf8.RuneCountInString(professor) > MaxProfessorLength {
+		return ErrInvalidProfessor
+	}
+	if input.Year < MinAcademicYear || input.Year > MaxAcademicYear {
+		return ErrInvalidYear
+	}
 	if !validCategories[strings.TrimSpace(input.Category)] {
 		return ErrInvalidCategory
 	}
@@ -128,6 +143,7 @@ func Validate(input CreateInput) error {
 func Normalize(input CreateInput) CreateInput {
 	input.CourseID = strings.TrimSpace(input.CourseID)
 	input.CourseTitle = strings.TrimSpace(input.CourseTitle)
+	input.Professor = strings.TrimSpace(input.Professor)
 	input.Category = strings.TrimSpace(strings.ToLower(input.Category))
 	input.Content = strings.TrimSpace(input.Content)
 	return input

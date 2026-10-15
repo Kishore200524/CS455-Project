@@ -74,7 +74,7 @@ function CourseCatalogSection({ accessToken }: CourseCatalogSectionProps) {
   );
 
   return (
-    <section className="mt-14 border-t border-ink/10 pt-10">
+    <section>
       <h2 className="text-2xl font-bold">Course list</h2>
       <p className="mt-3 max-w-2xl leading-7 text-ink/65">
         Courses added here appear as suggestions when students search for a course or write a

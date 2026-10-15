@@ -157,7 +157,7 @@ function ActionCard({ title, text, action, onClick }: { title: string; text: str
 }
 
 function SubmitReview({ accessToken, onComplete }: { accessToken?: string; onComplete: (referenceCode: string) => void }) {
-  const [form, setForm] = useState({ courseId: "", courseTitle: "", category: "teaching", rating: 0, content: "" });
+  const [form, setForm] = useState({ courseId: "", courseTitle: "", professor: "", year: new Date().getFullYear(), category: "teaching", rating: 0, content: "" });
   const [result, setResult] = useState<FeedbackResponse | null>(null);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -177,7 +177,7 @@ function SubmitReview({ accessToken, onComplete }: { accessToken?: string; onCom
     setIsSubmitting(true);
     try {
       setResult(await submitFeedback(form, accessToken));
-      setForm({ courseId: "", courseTitle: "", category: "teaching", rating: 0, content: "" });
+      setForm({ courseId: "", courseTitle: "", professor: "", year: new Date().getFullYear(), category: "teaching", rating: 0, content: "" });
     } catch (submitError: unknown) {
       setError(submitError instanceof Error ? submitError.message : "We could not submit the review.");
     } finally {
@@ -234,10 +234,21 @@ function SubmitReview({ accessToken, onComplete }: { accessToken?: string; onCom
       <form className="mt-6 space-y-6 rounded-xl border border-ink/10 bg-white p-6 shadow-sm" onSubmit={handleSubmit}>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Course ID">
-            <CourseIdInput accessToken={accessToken} onChange={(value) => setField("courseId", value)} onPick={(course) => setField("courseTitle", course.title)} placeholder="CS455" value={form.courseId} />
+            <CourseIdInput accessToken={accessToken} onChange={(value) => setField("courseId", value)} onPick={(course) => {
+              setField("courseTitle", course.title);
+              if (course.instructor) setField("professor", course.instructor);
+            }} placeholder="CS455" value={form.courseId} />
           </Field>
           <Field label="Course title">
             <input className="input" placeholder="Software Engineering" value={form.courseTitle} onChange={(event) => setField("courseTitle", event.target.value)} />
+          </Field>
+        </div>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label="Professor name">
+            <input className="input" autoComplete="off" maxLength={120} placeholder="Prof. Rao" required value={form.professor} onChange={(event) => setField("professor", event.target.value)} />
+          </Field>
+          <Field label="Year">
+            <input className="input" max={2100} min={1900} placeholder="2026" required type="number" value={form.year || ""} onChange={(event) => setField("year", event.target.valueAsNumber || 0)} />
           </Field>
         </div>
         <CourseTitleAutofill accessToken={accessToken} courseId={form.courseId} courseTitle={form.courseTitle} onFill={(title) => setField("courseTitle", title)} />

@@ -99,6 +99,8 @@ func (m *memoryStore) Create(_ context.Context, input feedback.CreateInput) (fee
 		ReferenceCode: "CE-TEST123",
 		CourseID:      input.CourseID,
 		CourseTitle:   input.CourseTitle,
+		Professor:     input.Professor,
+		Year:          input.Year,
 		Category:      input.Category,
 		Rating:        input.Rating,
 		Content:       input.Content,
@@ -175,7 +177,7 @@ func TestCreateFeedback(t *testing.T) {
 	dispatcher := &captureTriageDispatcher{}
 	handler := NewServer(store, authService, WithTriageDispatcher(dispatcher))
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/feedback", strings.NewReader(
-		`{"courseId":" CS455 ","courseTitle":" Software Engineering ","category":"teaching","rating":4,"content":" A useful example "}`,
+		`{"courseId":" CS455 ","courseTitle":" Software Engineering ","professor":" Prof. Rao ","year":2026,"category":"teaching","rating":4,"content":" A useful example "}`,
 	))
 	request.Header.Set("Authorization", "Bearer "+session.AccessToken)
 	response := httptest.NewRecorder()
@@ -185,7 +187,7 @@ func TestCreateFeedback(t *testing.T) {
 	if response.Code != http.StatusCreated {
 		t.Fatalf("status = %d, want %d; body: %s", response.Code, http.StatusCreated, response.Body.String())
 	}
-	if store.created.CourseID != "CS455" || store.created.CourseTitle != "Software Engineering" || store.created.Content != "A useful example" {
+	if store.created.CourseID != "CS455" || store.created.CourseTitle != "Software Engineering" || store.created.Professor != "Prof. Rao" || store.created.Year != 2026 || store.created.Content != "A useful example" {
 		t.Fatalf("stored feedback was not normalized: %+v", store.created)
 	}
 
@@ -210,7 +212,7 @@ func TestCreateFeedbackAcknowledgesWhenTriageQueueIsUnavailable(t *testing.T) {
 	}
 	handler := NewServer(store, authService, WithTriageDispatcher(&captureTriageDispatcher{err: triage.ErrQueueFull}))
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/feedback", strings.NewReader(
-		`{"courseId":"CS455","courseTitle":"Software Engineering","category":"teaching","rating":4,"content":"Useful examples."}`,
+		`{"courseId":"CS455","courseTitle":"Software Engineering","professor":"Prof. Rao","year":2026,"category":"teaching","rating":4,"content":"Useful examples."}`,
 	))
 	request.Header.Set("Authorization", "Bearer "+session.AccessToken)
 	response := httptest.NewRecorder()
@@ -310,7 +312,7 @@ func TestFeedbackAppealAppearsInStatusAndCanOnlyBeSubmittedOnce(t *testing.T) {
 	handler := NewServer(store, authService)
 
 	submit := httptest.NewRequest(http.MethodPost, "/api/v1/feedback", strings.NewReader(
-		`{"courseId":"CS455","courseTitle":"Software Engineering","category":"teaching","rating":4,"content":"Helpful examples"}`,
+		`{"courseId":"CS455","courseTitle":"Software Engineering","professor":"Prof. Rao","year":2026,"category":"teaching","rating":4,"content":"Helpful examples"}`,
 	))
 	submit.Header.Set("Authorization", "Bearer "+session.AccessToken)
 	submitResponse := httptest.NewRecorder()
@@ -363,7 +365,7 @@ func TestCreateFeedbackRejectsInvalidInput(t *testing.T) {
 	}
 	handler := NewServer(store, authService)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/feedback", strings.NewReader(
-		`{"courseId":"CS455","courseTitle":"Software Engineering","category":"teaching","rating":4,"content":" "}`,
+		`{"courseId":"CS455","courseTitle":"Software Engineering","professor":"Prof. Rao","year":2026,"category":"teaching","rating":4,"content":" "}`,
 	))
 	request.Header.Set("Authorization", "Bearer "+session.AccessToken)
 	response := httptest.NewRecorder()

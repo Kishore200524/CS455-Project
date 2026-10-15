@@ -30,6 +30,8 @@ type feedbackRecord struct {
 	ReferenceCode          string             `bson:"referenceCode"`
 	CourseID               string             `bson:"courseId"`
 	CourseTitle            string             `bson:"courseTitle"`
+	Professor              string             `bson:"professor"`
+	Year                   int                `bson:"year"`
 	Category               string             `bson:"category"`
 	Rating                 int                `bson:"rating"`
 	Content                string             `bson:"content"`
@@ -49,6 +51,8 @@ func (r feedbackRecord) feedback() feedback.Feedback {
 		ReferenceCode:          r.ReferenceCode,
 		CourseID:               r.CourseID,
 		CourseTitle:            r.CourseTitle,
+		Professor:              r.Professor,
+		Year:                   r.Year,
 		Category:               r.Category,
 		Rating:                 r.Rating,
 		Content:                r.Content,
@@ -383,6 +387,8 @@ func (m *Mongo) Create(ctx context.Context, input feedback.CreateInput) (feedbac
 		"referenceCode": referenceCode,
 		"courseId":      input.CourseID,
 		"courseTitle":   input.CourseTitle,
+		"professor":     input.Professor,
+		"year":          input.Year,
 		"category":      input.Category,
 		"rating":        input.Rating,
 		"content":       input.Content,
@@ -405,6 +411,8 @@ func (m *Mongo) Create(ctx context.Context, input feedback.CreateInput) (feedbac
 		ReferenceCode: referenceCode,
 		CourseID:      input.CourseID,
 		CourseTitle:   input.CourseTitle,
+		Professor:     input.Professor,
+		Year:          input.Year,
 		Category:      input.Category,
 		Rating:        input.Rating,
 		Content:       input.Content,
@@ -777,8 +785,8 @@ func (m *Mongo) CreateAppeal(ctx context.Context, referenceCode, reason string) 
 		"reviewId":      review.ID,
 		"referenceCode": review.ReferenceCode,
 		"courseId":      review.CourseID,
-		"year":          0,
-		"professor":     "",
+		"year":          review.Year,
+		"professor":     review.Professor,
 		"status":        feedback.StatusUnderAppeal,
 		"feedbackText":  review.Content,
 		"flagReason":    review.FlagReason,

@@ -52,11 +52,13 @@ function ModeratorApp({ session, onLogout }: ModeratorAppProps) {
       <header className="border-b border-ink/10 bg-white">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-6 py-5">
           <button
-            className="text-xl font-bold tracking-tight text-ocean focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ocean"
+            className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ocean"
             onClick={() => goTo({ page: "queue" })}
             type="button"
           >
-            CampusEcho
+            <span className="text-xl font-bold tracking-tight text-ocean">
+              CampusEcho
+            </span>
           </button>
           <nav className="flex items-center gap-2" aria-label="Moderator">
             <button

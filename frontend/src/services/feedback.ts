@@ -10,6 +10,8 @@ export const reviewCategories = [
 export interface FeedbackInput {
   courseId: string;
   courseTitle: string;
+  professor: string;
+  year: number;
   category: string;
   rating: number;
   content: string;
@@ -79,6 +81,8 @@ function isFeedback(value: unknown): value is FeedbackResponse {
     typeof value.referenceCode === "string" &&
     typeof value.courseId === "string" &&
     typeof value.courseTitle === "string" &&
+    typeof value.professor === "string" &&
+    typeof value.year === "number" &&
     typeof value.category === "string" &&
     typeof value.rating === "number" &&
     typeof value.content === "string" &&

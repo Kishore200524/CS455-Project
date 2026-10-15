@@ -342,6 +342,8 @@ func TestStudentAppealCreatesModeratorQueueTicket(t *testing.T) {
 	input := feedback.CreateInput{
 		CourseID:    "CS455",
 		CourseTitle: "Software Engineering",
+		Professor:   "Prof. Rao",
+		Year:        2026,
 		Category:    "teaching",
 		Rating:      4,
 		Content:     "The project workload was too high.",
@@ -380,8 +382,8 @@ func TestStudentAppealCreatesModeratorQueueTicket(t *testing.T) {
 	if len(queued) != 1 || queued[0].ReferenceCode != review.ReferenceCode || queued[0].CourseID != input.CourseID {
 		t.Fatalf("moderator queue after appeal = %+v, want the appealed review", queued)
 	}
-	if queued[0].Year != 0 || queued[0].Professor != "" {
-		t.Fatalf("missing course details = year %d, professor %q; want no fabricated values", queued[0].Year, queued[0].Professor)
+	if queued[0].Year != input.Year || queued[0].Professor != input.Professor {
+		t.Fatalf("course details = year %d, professor %q; want %d and %q", queued[0].Year, queued[0].Professor, input.Year, input.Professor)
 	}
 
 	status, err := store.FindByReference(ctx, review.ReferenceCode)

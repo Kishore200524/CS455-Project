@@ -4,12 +4,15 @@ import { provisionModerator, removeModerator } from "../services/auth";
 import AnnouncementsSection from "./admin/AnnouncementsSection";
 import CourseCatalogSection from "./admin/CourseCatalogSection";
 
+type AdminPage = "announcements" | "moderators" | "courses";
+
 interface AdministratorPageProps {
   session: AuthSession;
   onLogout: () => void;
 }
 
 function AdministratorPage({ session, onLogout }: AdministratorPageProps) {
+  const [page, setPage] = useState<AdminPage>("announcements");
   const [createdModerator, setCreatedModerator] = useState<AuthUser | null>(null);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,125 +68,150 @@ function AdministratorPage({ session, onLogout }: AdministratorPageProps) {
     }
   }
 
+  function navClass(active: boolean) {
+    return `rounded-lg px-4 py-2 text-sm font-semibold ${
+      active ? "bg-ocean text-white" : "hover:bg-mist"
+    }`;
+  }
+
   return (
     <main className="min-h-screen bg-mist text-ink">
       <header className="border-b border-ink/10 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
-          <span className="text-xl font-bold tracking-tight text-ocean">
-            CampusEcho
-          </span>
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-6 py-5">
           <button
-            className="rounded-lg border border-ink/15 px-4 py-2 text-sm font-semibold hover:bg-mist"
-            onClick={onLogout}
+            className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ocean"
+            onClick={() => setPage("announcements")}
             type="button"
           >
-            Sign out
+            <span className="text-xl font-bold tracking-tight text-ocean">CampusEcho</span>
           </button>
+          <nav className="flex flex-wrap items-center gap-2" aria-label="Administrator">
+            <button className={navClass(page === "announcements")} onClick={() => setPage("announcements")} type="button">
+              Announcements
+            </button>
+            <button className={navClass(page === "moderators")} onClick={() => setPage("moderators")} type="button">
+              Add moderator
+            </button>
+            <button className={navClass(page === "courses")} onClick={() => setPage("courses")} type="button">
+              Add course
+            </button>
+            <button
+              className="rounded-lg border border-ink/15 px-4 py-2 text-sm font-semibold hover:bg-mist"
+              onClick={onLogout}
+              type="button"
+            >
+              Sign out
+            </button>
+          </nav>
         </div>
       </header>
 
-      <section className="mx-auto max-w-5xl px-6 py-12">
-        <p className="text-sm font-bold uppercase tracking-[0.2em] text-ocean">
-          Administrator
-        </p>
-        <h1 className="mt-3 text-3xl font-bold">Moderator accounts</h1>
-        <p className="mt-3 max-w-2xl leading-7 text-ink/65">
-          Create moderator accounts for authorized staff. Moderator access is
-          assigned by the server, not selected during public registration.
-        </p>
-
-        <form
-          className="mt-8 max-w-xl space-y-5 rounded-2xl border border-ink/10 bg-white p-6 shadow-sm"
-          onSubmit={handleSubmit}
-        >
-          <label className="block">
-            <span className="mb-2 block text-sm font-semibold">Staff email</span>
-            <input
-              autoComplete="email"
-              className="w-full rounded-lg border border-ink/15 px-4 py-3 outline-none focus:border-ocean focus:ring-2 focus:ring-ocean/15"
-              name="email"
-              required
-              type="email"
-            />
-          </label>
-
-          <label className="block">
-            <span className="mb-2 block text-sm font-semibold">
-              Initial password (6–72 characters)
-            </span>
-            <input
-              autoComplete="new-password"
-              className="w-full rounded-lg border border-ink/15 px-4 py-3 outline-none focus:border-ocean focus:ring-2 focus:ring-ocean/15"
-              minLength={6}
-              maxLength={72}
-              name="password"
-              required
-              type="password"
-            />
-            <span className="mt-2 block text-xs text-ink/50">
-              Use 6–72 characters and deliver it to the staff member securely.
-            </span>
-          </label>
-
-          {error && (
-            <p
-              className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-800"
-              role="alert"
-            >
-              {error}
+      <section className="mx-auto max-w-5xl px-6 py-10">
+        {page === "announcements" && (
+          <AnnouncementsSection accessToken={session.accessToken ?? ""} />
+        )}
+        {page === "moderators" && (
+          <section>
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-ocean">
+              Administrator
             </p>
-          )}
-          {createdModerator && (
-            <p
-              className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
-              role="status"
-            >
-              Moderator account created for {createdModerator.email}.
+            <h1 className="mt-3 text-3xl font-bold">Moderator accounts</h1>
+            <p className="mt-3 max-w-2xl leading-7 text-ink/65">
+              Create moderator accounts for authorized staff. Moderator access is
+              assigned by the server, not selected during public registration.
             </p>
-          )}
 
-          <button
-            className="rounded-lg bg-ocean px-5 py-3 font-semibold text-white hover:bg-ocean/90 disabled:opacity-60"
-            disabled={isSubmitting}
-            type="submit"
-          >
-            {isSubmitting ? "Creating…" : "Create moderator"}
-          </button>
-        </form>
+            <div className="mt-8 grid gap-6 md:grid-cols-2">
+              <form
+                className="space-y-5 rounded-2xl border border-ink/10 bg-white p-6 shadow-sm"
+                onSubmit={handleSubmit}
+              >
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold">Staff email</span>
+                <input
+                  autoComplete="email"
+                  className="w-full rounded-lg border border-ink/15 px-4 py-3 outline-none focus:border-ocean focus:ring-2 focus:ring-ocean/15"
+                  name="email"
+                  required
+                  type="email"
+                />
+              </label>
 
-        <form
-          className="mt-6 max-w-xl space-y-5 rounded-2xl border border-rose-200 bg-white p-6 shadow-sm"
-          onSubmit={handleRemove}
-        >
-          <div>
-            <h2 className="text-lg font-bold">Remove moderator access</h2>
-            <p className="mt-1 text-sm leading-6 text-ink/60">
-              This permanently removes the moderator account and invalidates future sign-ins.
-            </p>
-          </div>
-          <label className="block">
-            <span className="mb-2 block text-sm font-semibold">Moderator email</span>
-            <input
-              autoComplete="email"
-              className="w-full rounded-lg border border-ink/15 px-4 py-3 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/15"
-              onChange={(event) => setRemoveEmail(event.target.value)}
-              required
-              type="email"
-              value={removeEmail}
-            />
-          </label>
-          {removeError && <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">{removeError}</p>}
-          {removeMessage && <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">{removeMessage}</p>}
-          <button
-            className="rounded-lg bg-rose-700 px-5 py-3 font-semibold text-white hover:bg-rose-800 disabled:opacity-60"
-            disabled={isRemoving}
-            type="submit"
-          >
-            {isRemoving ? "Removing…" : "Remove moderator"}
-          </button>
-        </form>
-        <AnnouncementsSection accessToken={session.accessToken ?? ""} />
-        <CourseCatalogSection accessToken={session.accessToken ?? ""} />
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold">
+                  Initial password (6–72 characters)
+                </span>
+                <input
+                  autoComplete="new-password"
+                  className="w-full rounded-lg border border-ink/15 px-4 py-3 outline-none focus:border-ocean focus:ring-2 focus:ring-ocean/15"
+                  minLength={6}
+                  maxLength={72}
+                  name="password"
+                  required
+                  type="password"
+                />
+                <span className="mt-2 block text-xs text-ink/50">
+                  Use 6–72 characters and deliver it to the staff member securely.
+                </span>
+              </label>
+
+              {error && (
+                <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">
+                  {error}
+                </p>
+              )}
+              {createdModerator && (
+                <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">
+                  Moderator account created for {createdModerator.email}.
+                </p>
+              )}
+
+              <button
+                className="rounded-lg bg-ocean px-5 py-3 font-semibold text-white hover:bg-ocean/90 disabled:opacity-60"
+                disabled={isSubmitting}
+                type="submit"
+              >
+                {isSubmitting ? "Creating…" : "Create moderator"}
+              </button>
+              </form>
+
+              <form
+                className="space-y-5 rounded-2xl border border-rose-200 bg-white p-6 shadow-sm"
+                onSubmit={handleRemove}
+              >
+              <div>
+                <h2 className="text-lg font-bold">Remove moderator access</h2>
+                <p className="mt-1 text-sm leading-6 text-ink/60">
+                  This permanently removes the moderator account and invalidates future sign-ins.
+                </p>
+              </div>
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold">Moderator email</span>
+                <input
+                  autoComplete="email"
+                  className="w-full rounded-lg border border-ink/15 px-4 py-3 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/15"
+                  onChange={(event) => setRemoveEmail(event.target.value)}
+                  required
+                  type="email"
+                  value={removeEmail}
+                />
+              </label>
+              {removeError && <p className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">{removeError}</p>}
+              {removeMessage && <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">{removeMessage}</p>}
+              <button
+                className="rounded-lg bg-rose-700 px-5 py-3 font-semibold text-white hover:bg-rose-800 disabled:opacity-60"
+                disabled={isRemoving}
+                type="submit"
+              >
+                {isRemoving ? "Removing…" : "Remove moderator"}
+              </button>
+              </form>
+            </div>
+          </section>
+        )}
+        {page === "courses" && (
+          <CourseCatalogSection accessToken={session.accessToken ?? ""} />
+        )}
       </section>
     </main>
   );

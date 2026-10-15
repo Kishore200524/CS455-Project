@@ -54,9 +54,9 @@ Created by the student-appeal endpoint, which stores these fields. Display
 fields are copied onto the ticket when the appeal is made.
 
 Only reviews with a submitted student appeal are inserted into this queue;
-flagged reviews without an appeal do not create tickets. The current student
-form does not collect year or professor, so tickets store year `0` and an empty
-professor; the moderator detail page displays both as "Not provided".
+flagged reviews without an appeal do not create tickets. Student submissions
+include year and professor, and those values are copied onto the appeal ticket.
+Older reviews without these fields continue to display them as "Not provided".
 
 | Field | Type | Notes |
 | --- | --- | --- |

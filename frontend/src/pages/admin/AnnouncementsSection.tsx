@@ -63,7 +63,7 @@ function AnnouncementsSection({ accessToken }: AnnouncementsSectionProps) {
   const expired = items.filter(isExpired);
 
   return (
-    <section className="mt-14 border-t border-ink/10 pt-10">
+    <section>
       <h2 className="text-2xl font-bold">Announcements</h2>
       <p className="mt-3 max-w-2xl leading-7 text-ink/65">
         Post a notice for students, such as a feedback window opening for a course. It appears on
